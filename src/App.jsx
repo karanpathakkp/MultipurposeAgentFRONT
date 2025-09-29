@@ -55,7 +55,7 @@ const ChatApp = () => {
     const newClientId = generateClientId();
     setClientId(newClientId);
     
-    const wsUrl = `ws://localhost:8001/ws/${newClientId}`;
+    const wsUrl = `wss://multipurposeagent.onrender.com/ws/${newClientId}`;
     const newSocket = new WebSocket(wsUrl);
 
     newSocket.onopen = () => {
