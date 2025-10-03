@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import './App.css';
 import { Send, MessageCircle, User, Bot, Wifi, WifiOff } from 'lucide-react';
 
 const ChatApp = () => {
@@ -70,7 +71,6 @@ const ChatApp = () => {
 
     newSocket.onmessage = (event) => {
       console.log('Received message:', event.data);
-      setIsTyping(false);
       
       // Try to parse JSON message, fallback to plain text
       let messageContent = event.data;
@@ -101,6 +101,8 @@ const ChatApp = () => {
       // If message contains <contact> block(s), render each as a dedicated card
       const contacts = parseContacts(messageContent);
       if (contacts.length > 0) {
+        // Stop typing only when real payload arrives
+        setIsTyping(false);
         setMessages(prev => [
           ...prev,
           ...contacts.map(contact => ({ type: 'contact', contact, timestamp: new Date() }))
@@ -108,6 +110,11 @@ const ChatApp = () => {
         return; // do not also add raw text
       }
       
+      // For bot text messages, also stop typing
+      if (messageType !== 'user' && messageType !== 'system') {
+        setIsTyping(false);
+      }
+
       setMessages(prev => [...prev, {
         type: 'bot',
         content: messageContent,
@@ -197,8 +204,8 @@ const ChatApp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen h-screen w-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-0 m-0">
+      <div className="h-full w-full flex flex-col">
         {/* Header */}
         <div className="bg-white rounded-t-2xl shadow-lg border-b border-gray-200 p-6">
           <div className="flex items-center justify-between">
@@ -255,7 +262,7 @@ const ChatApp = () => {
         </div>
 
         {/* Messages Container */}
-        <div className="bg-white shadow-lg h-96 overflow-y-auto">
+        <div className="bg-white shadow-lg flex-1 overflow-y-auto">
           <div className="p-6 space-y-4">
             {messages.length === 0 ? (
               <div className="text-center py-12">
@@ -330,10 +337,10 @@ const ChatApp = () => {
                     <Bot className="text-white" size={16} />
                   </div>
                   <div className="bg-gray-100 rounded-2xl px-4 py-2">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="typing-bubble" aria-label="thinking">
+                      <span className="typing-dot"></span>
+                      <span className="typing-dot"></span>
+                      <span className="typing-dot"></span>
                     </div>
                   </div>
                 </div>
