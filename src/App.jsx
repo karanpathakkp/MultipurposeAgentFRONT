@@ -10,6 +10,8 @@ const ChatApp = () => {
   const [clientId, setClientId] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
+  const heartbeatIntervalRef = useRef(null);
+  const lastActivityRef = useRef(Date.now());
 
   // Parse one or many <contact> XML-like snippets into structured objects
   const parseContacts = (text) => {
@@ -56,12 +58,36 @@ const ChatApp = () => {
     const newClientId = generateClientId();
     setClientId(newClientId);
     
-    const wsUrl = `wss://multipurposeagent.onrender.com/ws/${newClientId}`;
+    //const wsUrl = `wss://multipurposeagent.onrender.com/ws/${newClientId}`;
+    const wsUrl = `ws://localhost:8001/ws/${newClientId}`;
     const newSocket = new WebSocket(wsUrl);
+
+    const startHeartbeat = (ws) => {
+      // Clear any existing heartbeat
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+      // Check every 15s; send ping if 60s of inactivity
+      heartbeatIntervalRef.current = setInterval(() => {
+        const now = Date.now();
+        const millisSinceActivity = now - lastActivityRef.current;
+        if (millisSinceActivity >= 60_000 && ws.readyState === WebSocket.OPEN) {
+          try {
+            ws.send(JSON.stringify({ type: 'ping', timestamp: now }));
+            // Update activity so we don't spam pings
+            lastActivityRef.current = now;
+          } catch (e) {
+            // no-op; onerror/onclose handlers will manage state
+          }
+        }
+      }, 15_000);
+    };
 
     newSocket.onopen = () => {
       console.log('Connected to WebSocket');
       setConnectionStatus('connected');
+      lastActivityRef.current = Date.now();
+      startHeartbeat(newSocket);
       setMessages(prev => [...prev, {
         type: 'system',
         content: `Connected as client: ${newClientId}`,
@@ -71,6 +97,7 @@ const ChatApp = () => {
 
     newSocket.onmessage = (event) => {
       console.log('Received message:', event.data);
+      lastActivityRef.current = Date.now();
       
       // Try to parse JSON message, fallback to plain text
       let messageContent = event.data;
@@ -125,6 +152,10 @@ const ChatApp = () => {
     newSocket.onclose = () => {
       console.log('WebSocket connection closed');
       setConnectionStatus('disconnected');
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
       setMessages(prev => [...prev, {
         type: 'system',
         content: 'Disconnected from server',
@@ -135,6 +166,10 @@ const ChatApp = () => {
     newSocket.onerror = (error) => {
       console.error('WebSocket error:', error);
       setConnectionStatus('error');
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
       setMessages(prev => [...prev, {
         type: 'system',
         content: 'Connection error occurred',
@@ -148,6 +183,10 @@ const ChatApp = () => {
   // Disconnect WebSocket
   const disconnectWebSocket = () => {
     if (socket) {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
       socket.close();
       setSocket(null);
     }
@@ -168,6 +207,7 @@ const ChatApp = () => {
 
     // Send message to server
     socket.send(inputMessage);
+    lastActivityRef.current = Date.now();
     
     // Show typing indicator
     setIsTyping(true);
