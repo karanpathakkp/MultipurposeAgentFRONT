@@ -254,8 +254,8 @@ const ChatApp = () => {
                 <MessageCircle className="text-white" size={24} />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Agent Chat</h1>
-                <p className="text-gray-600">Connect with your AI assistant</p>
+                <h1 className="text-2xl font-bold text-gray-900">Gaurdians of Truth</h1>
+                <p className="text-gray-600">Connect with your AI News assistant</p>
               </div>
             </div>
             
