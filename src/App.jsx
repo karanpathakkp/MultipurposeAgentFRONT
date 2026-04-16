@@ -255,7 +255,7 @@ const ChatApp = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Gaurdians of Truth</h1>
-                <p className="text-gray-600">Connect with your AI News assistant</p>
+                <p className="text-gray-600">Connect with your AI Health Coach</p>
               </div>
             </div>
             
